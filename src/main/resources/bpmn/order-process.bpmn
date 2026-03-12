@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  id="Definitions_Order_Process"
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <bpmn:process id="order-process" name="Order Process" isExecutable="true">
+
+    <bpmn:startEvent id="StartEvent_1" name="Start">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:serviceTask id="Task_CreateOrder" name="Create Order">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="create-order" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_CheckInventory" name="Check Inventory">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="check-inventory" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_StockAvailable" name="Stock Available?">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_YesStock</bpmn:outgoing>
+      <bpmn:outgoing>Flow_NoStock</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_NotifyCustomer" name="Notify Customer">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="notify-customer" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_NoStock</bpmn:incoming>
+      <bpmn:outgoing>Flow_NotifyToEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_ReserveInventory" name="Reserve Inventory">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="reserve-inventory" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_YesStock</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_ProcessPayment" name="Process Payment">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="process-payment" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_PaymentSuccess" name="Payment Success?">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_YesPayment</bpmn:outgoing>
+      <bpmn:outgoing>Flow_NoPayment</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_CancelOrder" name="Cancel Order">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="cancel-order" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_NoPayment</bpmn:incoming>
+      <bpmn:outgoing>Flow_CancelToEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_ShipOrder" name="Ship Order">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="ship-order" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_YesPayment</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_SendConfirmation" name="Send Confirmation">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="send-confirmation" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="EndEvent_1" name="End">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:incoming>Flow_NotifyToEnd</bpmn:incoming>
+      <bpmn:incoming>Flow_CancelToEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_CreateOrder" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_CreateOrder" targetRef="Task_CheckInventory" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_CheckInventory" targetRef="Gateway_StockAvailable" />
+
+    <bpmn:sequenceFlow id="Flow_YesStock" sourceRef="Gateway_StockAvailable" targetRef="Task_ReserveInventory">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= stockAvailable = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_NoStock" sourceRef="Gateway_StockAvailable" targetRef="Task_NotifyCustomer">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= stockAvailable = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_ReserveInventory" targetRef="Task_ProcessPayment" />
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_ProcessPayment" targetRef="Gateway_PaymentSuccess" />
+
+    <bpmn:sequenceFlow id="Flow_YesPayment" sourceRef="Gateway_PaymentSuccess" targetRef="Task_ShipOrder">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= paymentSuccess = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_NoPayment" sourceRef="Gateway_PaymentSuccess" targetRef="Task_CancelOrder">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= paymentSuccess = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_ShipOrder" targetRef="Task_SendConfirmation" />
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="Task_SendConfirmation" targetRef="EndEvent_1" />
+    <bpmn:sequenceFlow id="Flow_NotifyToEnd" sourceRef="Task_NotifyCustomer" targetRef="EndEvent_1" />
+    <bpmn:sequenceFlow id="Flow_CancelToEnd" sourceRef="Task_CancelOrder" targetRef="EndEvent_1" />
+
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="order-process">
+
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="140" y="180" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CreateOrder_di" bpmnElement="Task_CreateOrder">
+        <dc:Bounds x="230" y="158" width="120" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CheckInventory_di" bpmnElement="Task_CheckInventory">
+        <dc:Bounds x="400" y="158" width="120" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_StockAvailable_di" bpmnElement="Gateway_StockAvailable" isMarkerVisible="true">
+        <dc:Bounds x="585" y="173" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_NotifyCustomer_di" bpmnElement="Task_NotifyCustomer">
+        <dc:Bounds x="700" y="40" width="120" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ReserveInventory_di" bpmnElement="Task_ReserveInventory">
+        <dc:Bounds x="700" y="158" width="120" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ProcessPayment_di" bpmnElement="Task_ProcessPayment">
+        <dc:Bounds x="880" y="158" width="120" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_PaymentSuccess_di" bpmnElement="Gateway_PaymentSuccess" isMarkerVisible="true">
+        <dc:Bounds x="1065" y="173" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CancelOrder_di" bpmnElement="Task_CancelOrder">
+        <dc:Bounds x="1180" y="40" width="120" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ShipOrder_di" bpmnElement="Task_ShipOrder">
+        <dc:Bounds x="1180" y="158" width="120" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SendConfirmation_di" bpmnElement="Task_SendConfirmation">
+        <dc:Bounds x="1360" y="158" width="140" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+        <dc:Bounds x="1570" y="180" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="176" y="198" />
+        <di:waypoint x="230" y="198" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="350" y="198" />
+        <di:waypoint x="400" y="198" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="520" y="198" />
+        <di:waypoint x="585" y="198" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_YesStock_di" bpmnElement="Flow_YesStock">
+        <di:waypoint x="635" y="198" />
+        <di:waypoint x="700" y="198" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_NoStock_di" bpmnElement="Flow_NoStock">
+        <di:waypoint x="610" y="173" />
+        <di:waypoint x="610" y="80" />
+        <di:waypoint x="700" y="80" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="820" y="198" />
+        <di:waypoint x="880" y="198" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="1000" y="198" />
+        <di:waypoint x="1065" y="198" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_YesPayment_di" bpmnElement="Flow_YesPayment">
+        <di:waypoint x="1115" y="198" />
+        <di:waypoint x="1180" y="198" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_NoPayment_di" bpmnElement="Flow_NoPayment">
+        <di:waypoint x="1090" y="173" />
+        <di:waypoint x="1090" y="80" />
+        <di:waypoint x="1180" y="80" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="1300" y="198" />
+        <di:waypoint x="1360" y="198" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <di:waypoint x="1500" y="198" />
+        <di:waypoint x="1570" y="198" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_NotifyToEnd_di" bpmnElement="Flow_NotifyToEnd">
+        <di:waypoint x="820" y="80" />
+        <di:waypoint x="900" y="80" />
+        <di:waypoint x="900" y="300" />
+        <di:waypoint x="1588" y="300" />
+        <di:waypoint x="1588" y="216" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_CancelToEnd_di" bpmnElement="Flow_CancelToEnd">
+        <di:waypoint x="1300" y="80" />
+        <di:waypoint x="1400" y="80" />
+        <di:waypoint x="1400" y="300" />
+        <di:waypoint x="1588" y="300" />
+        <di:waypoint x="1588" y="216" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</bpmn:definitions>
