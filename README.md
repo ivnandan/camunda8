@@ -12,6 +12,5 @@ mvn spring-boot:run
 
 3. Deploy BPMN using Camunda Modeler to localhost:26500
 
-
-git config --global user.name "Vivek Nandan"
-git config --global user.email "ivnandan@gmail.com"
+For Local DB -
+http://localhost:8080/h2-console/login.jsp?jsessionid=44edec76b78b5b21e940e44ab03289e9ßß
