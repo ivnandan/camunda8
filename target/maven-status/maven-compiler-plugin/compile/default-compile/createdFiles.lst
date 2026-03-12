@@ -1,8 +1,0 @@
-com/example/demo/entity/OrderEntity.class
-com/example/demo/repo/OrderRepository.class
-com/example/demo/DemoApplication.class
-com/example/demo/worker/CreateOrderWorker.class
-com/example/demo/config/OpenApiConfig.class
-com/example/demo/api/OrderController.class
-com/example/demo/worker/HelloWorker.class
-com/example/demo/worker/ApproveOrderWorker.class
