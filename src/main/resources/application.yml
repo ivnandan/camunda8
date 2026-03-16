@@ -19,3 +19,15 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+security:
+  oauth2:
+    resourceserver:
+      jwt:
+        issuer-uri: http://localhost:18080/realms/camunda-demo

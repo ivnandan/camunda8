@@ -9,29 +9,34 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 @Component
-public class CreateOrderWorker {
+public class CheckInventoryWorker {
 
-    private static final Logger log = LoggerFactory.getLogger(CreateOrderWorker.class);
+    private static final Logger log = LoggerFactory.getLogger(CheckInventoryWorker.class);
+    private final Random random = new Random();
 
-    @JobWorker(type = ProcessConstants.JOB_TYPE_CREATE_ORDER)
-    public Map<String, Object> createOrder(final ActivatedJob job) {
+    @JobWorker(type = ProcessConstants.JOB_TYPE_CHECK_INVENTORY)
+    public Map<String, Object> checkInventory(final ActivatedJob job) {
 
         Map<String, Object> variables = job.getVariablesAsMap();
 
         String orderId = (String) variables.get("orderId");
-        String customerName = (String) variables.get("customerName");
         String productId = (String) variables.get("productId");
         Integer quantity = (Integer) variables.get("quantity");
-        Double amount = (Double) variables.get("amount");
 
-        log.info("Creating order. orderId={}, customerName={}, productId={}, quantity={}, amount={}",
-                orderId, customerName, productId, quantity, amount);
+        boolean stockAvailable = random.nextBoolean();
+
+        log.info("Checking inventory. orderId={}, productId={}, quantity={}, stockAvailable={}",
+                orderId, productId, quantity, stockAvailable);
 
         Map<String, Object> result = new HashMap<>();
-        result.put("orderStatus", "CREATED");
-        result.put("createOrderSuccess", true);
+        result.put("stockAvailable", stockAvailable);
+
+        if (!stockAvailable) {
+            result.put("orderStatus", "OUT_OF_STOCK");
+        }
 
         return result;
     }
